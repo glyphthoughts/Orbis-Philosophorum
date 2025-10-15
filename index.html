@@ -1,0 +1,390 @@
+<head>
+  <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+
+  <style>
+    * {
+      user-select: none;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'VT323', monospace;
+      background-color: #000000;
+      overflow: hidden;
+    }
+
+    .header {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      z-index: 1000;
+      text-align: left;
+      color: white;
+      max-width: 300px;
+    }
+
+    .header h1 {
+      font-size: clamp(20px, 4vw, 36px);
+      letter-spacing: 2px;
+      margin: 0;
+      margin-bottom: 5px;
+      font-family: 'VT323', monospace;
+      white-space: nowrap;
+    }
+
+    .header .creator {
+      font-size: clamp(10px, 2vw, 14px);
+      opacity: 0.7;
+      margin: 0;
+      margin-bottom: 10px;
+      font-family: 'VT323', monospace;
+    }
+
+    .header .instructions {
+      font-size: clamp(9.45px, 1.89vw, 12.6px);
+      color: #a0a0a0;
+      margin: 0;
+      line-height: 1.6;
+      font-family: 'VT323', monospace;
+    }
+
+    .credits {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      z-index: 1000;
+      font-size: clamp(11px, 2vw, 14px);
+      color: white;
+      margin: 0;
+      font-family: 'VT323', monospace;
+    }
+
+    .credits a {
+      color: white;
+      text-decoration: none;
+    }
+
+    .credits a:hover {
+      text-decoration: underline;
+    }
+
+    #globeViz {
+      width: 100vw !important;
+      height: 100vh !important;
+    }
+
+    @media (max-width: 768px) {
+      .header {
+        max-width: 200px;
+      }
+    }
+  </style>
+  <script src="//cdn.jsdelivr.net/npm/globe.gl"></script>
+</head>
+
+<body>
+  <div class="header">
+    <h1 id="title">Orbis Philosophorum</h1>
+    <p class="creator">(by GlyphThoughts)</p>
+    <div class="instructions">
+      • Drag to rotate<br>
+      • Scroll to zoom<br>
+      • Double-click country to center<br>
+      • Triple-click outside globe to reset
+    </div>
+  </div>
+
+  <div class="credits">
+    Made With: <a href="https://globe.gl" target="_blank">globe.gl</a>
+  </div>
+
+  <div id="globeViz"></div>
+
+  <script type="module">
+    import { scaleLinear } from 'https://esm.sh/d3-scale';
+
+    const philosophers = {
+      'AE': ['Ibn Sirin'],
+      'AF': ['Rumi', 'Al-Biruni'],
+      'AL': ['Mother Teresa', 'Ismail Kadare'],
+      'AM': ['Garegin Nzhdeh'],
+      'AO': ['Agostinho Neto'],
+      'AR': ['Jorge Luis Borges', 'José Ingenieros'],
+      'AT': ['Ludwig Wittgenstein', 'Karl Popper'],
+      'AU': ['Peter Singer', 'John Anderson'],
+      'AZ': ['Nizami Ganjavi'],
+      'BA': ['Ivo Andrić', 'Meša Selimović'],
+      'BD': ['Kazi Nazrul Islam'],
+      'BE': ['Justus Lipsius', 'Leo Apostel'],
+      'BF': ['Joseph Ki-Zerbo'],
+      'BG': ['Tzvetan Todorov', 'Julia Kristeva'],
+      'BI': ['Michel Kayoya'],
+      'BJ': ['Paulin Hountondji'],
+      'BN': ['Omar Ali Saifuddien III'],
+      'BO': ['Franz Tamayo'],
+      'BR': ['Paulo Freire', 'Roberto Unger'],
+      'BS': ['Sidney Poitier'],
+      'BT': ['Pema Lingpa'],
+      'BW': ['Unity Dow'],
+      'BY': ['Francysk Skaryna'],
+      'BZ': ['George Cadle Price'],
+      'CA': ['Charles Taylor', 'Marshall McLuhan'],
+      'CD': ['Patrice Lumumba'],
+      'CF': ['Barthélemy Boganda'],
+      'CG': ['Tchicaya U Tam\'si'],
+      'CH': ['Jean-Jacques Rousseau', 'Carl Jung'],
+      'CI': ['Bernard Dadié'],
+      'CL': ['Pablo Neruda', 'Gabriela Mistral'],
+      'CM': ['Fabien Eboussi Boulaga'],
+      'CN': ['Confucius', 'Laozi', 'Zhuangzi'],
+      'CO': ['Rafael Núñez', 'Estanislao Zuleta'],
+      'CR': ['Omar Dengo'],
+      'CU': ['José Martí', 'Fernando Ortiz'],
+      'CY': ['Zeno of Citium', 'Evagrius Ponticus'],
+      'CZ': ['Jan Hus', 'Jan Patočka'],
+      'DE': ['Immanuel Kant', 'Nietzsche', 'Heidegger'],
+      'DJ': ['Barkat Gourad Hamadou'],
+      'DK': ['Søren Kierkegaard', 'Tycho Brahe'],
+      'DO': ['Pedro Henríquez Ureña'],
+      'DZ': ['Augustine of Hippo', 'Ibn Khaldun'],
+      'EC': ['Benjamín Carrión'],
+      'EE': ['Jakob von Uexküll'],
+      'EG': ['Hypatia', 'Origen', 'Plotinus'],
+      'EH': ['No major philosophers recorded'],
+      'ER': ['Woldeab Woldemariam'],
+      'ES': ['Averroes', 'Ortega y Gasset', 'Unamuno'],
+      'ET': ['Zera Yacob', 'Haile Selassie'],
+      'FI': ['Georg Henrik von Wright'],
+      'FJ': ['Ratu Sukuna'],
+      'FK': ['No major philosophers recorded'],
+      'GA': ['Léon M\'ba'],
+      'GB': ['Bertrand Russell', 'John Locke', 'Hume'],
+      'GE': ['Shota Rustaveli', 'Merab Mamardashvili'],
+      'GH': ['Kwame Nkrumah', 'Anton Wilhelm Amo'],
+      'GL': ['No major philosophers recorded'],
+      'GM': ['Dawda Jawara'],
+      'GN': ['Ahmed Sékou Touré'],
+      'GQ': ['Francisco Macías Nguema'],
+      'GR': ['Socrates', 'Plato', 'Aristotle'],
+      'GT': ['Rafael Landívar'],
+      'GW': ['Amílcar Cabral'],
+      'GY': ['Cheddi Jagan'],
+      'HN': ['Ramón Rosa'],
+      'HR': ['Ruđer Bošković', 'Faust Vrančić'],
+      'HT': ['Toussaint Louverture'],
+      'HU': ['Georg Lukács', 'Béla Hamvas'],
+      'ID': ['Tan Malaka', 'Sutan Sjahrir'],
+      'IE': ['George Berkeley', 'Edmund Burke'],
+      'IL': ['Martin Buber', 'Emmanuel Levinas'],
+      'IN': ['Nagarjuna', 'Shankara', 'Aurobindo'],
+      'IQ': ['Al-Kindi', 'Al-Hallaj'],
+      'IR': ['Avicenna', 'Al-Farabi', 'Mulla Sadra'],
+      'IS': ['Snorri Sturluson'],
+      'IT': ['Thomas Aquinas', 'Machiavelli', 'Bruno'],
+      'JM': ['Marcus Garvey', 'Bob Marley'],
+      'JO': ['Abdullah I'],
+      'JP': ['Nishida Kitarō', 'Dōgen'],
+      'KE': ['Ali Mazrui', 'Jomo Kenyatta'],
+      'KG': ['Chingiz Aitmatov'],
+      'KH': ['Norodom Sihanouk'],
+      'KP': ['Kim Il-sung'],
+      'KR': ['Yi Hwang', 'Jeong Yak-yong'],
+      'KW': ['Abdullah Al-Salem'],
+      'KZ': ['Abay Qunanbayuly', 'Al-Farabi'],
+      'LA': ['Kaysone Phomvihane'],
+      'LB': ['Khalil Gibran', 'Nassim Taleb'],
+      'LK': ['Dharmakirti', 'Buddhaghosa'],
+      'LR': ['Edward Wilmot Blyden'],
+      'LS': ['Moshoeshoe I'],
+      'LT': ['Judah Loew ben Bezalel'],
+      'LU': ['Gabriel Lippmann'],
+      'LV': ['Isaiah Berlin', 'Sergei Eisenstein'],
+      'LY': ['Omar Mukhtar'],
+      'MA': ['Ibn Tufail', 'Ibn Battuta'],
+      'MD': ['Dimitrie Cantemir'],
+      'ME': ['Petar II Petrović-Njegoš'],
+      'MG': ['Jean-Joseph Rabearivelo'],
+      'MK': ['Mother Teresa', 'Kiro Gligorov'],
+      'ML': ['Amadou Hampâté Bâ'],
+      'MM': ['U Thant', 'Aung San'],
+      'MN': ['Zanabazar'],
+      'MR': ['Moktar Ould Daddah'],
+      'MW': ['Hastings Banda'],
+      'MX': ['José Vasconcelos', 'Octavio Paz'],
+      'MY': ['Syed Muhammad Naguib al-Attas'],
+      'MZ': ['Samora Machel'],
+      'NA': ['Sam Nujoma'],
+      'NC': ['Jean-Marie Tjibaou'],
+      'NE': ['Hamani Diori'],
+      'NG': ['Olufemi Taiwo', 'Chinua Achebe'],
+      'NI': ['Rubén Darío'],
+      'NL': ['Baruch Spinoza', 'Erasmus', 'Grotius'],
+      'NP': ['Buddha', 'Bhrikuti'],
+      'NZ': ['Karl Popper'],
+      'OM': ['Ibn Barka'],
+      'PA': ['Omar Torrijos'],
+      'PE': ['José Carlos Mariátegui'],
+      'PG': ['Michael Somare'],
+      'PH': ['José Rizal', 'Apolinario Mabini'],
+      'PK': ['Muhammad Iqbal', 'Fazlur Rahman'],
+      'PL': ['Copernicus', 'Roman Ingarden'],
+      'PR': ['Eugenio María de Hostos'],
+      'PS': ['Edward Said', 'Ghassan Kanafani'],
+      'PT': ['Fernando Pessoa', 'José Saramago'],
+      'PY': ['Augusto Roa Bastos'],
+      'QA': ['Sheikh Jassim bin Mohammed'],
+      'RO': ['Emil Cioran', 'Mircea Eliade'],
+      'RS': ['Mihajlo Petrović', 'Dobrica Ćosić'],
+      'RU': ['Leo Tolstoy', 'Dostoevsky', 'Berdyaev'],
+      'RW': ['Alexis Kagame'],
+      'SA': ['Al-Farabi', 'Muhammad ibn Abd al-Wahhab'],
+      'SB': ['Solomon Mamaloni'],
+      'SD': ['Mahmoud Mohammed Taha'],
+      'SE': ['Emanuel Swedenborg', 'Hägerström'],
+      'SI': ['Slavoj Žižek', 'Aleš Debeljak'],
+      'SK': ['Ján Kollár'],
+      'SL': ['Syl Cheney-Coker'],
+      'SN': ['Léopold Sédar Senghor', 'Cheikh Anta Diop'],
+      'SO': ['Muhammad Abdullah Hassan'],
+      'SR': ['Anton de Kom'],
+      'SS': ['John Garang'],
+      'SV': ['Alberto Masferrer'],
+      'SY': ['John of Damascus', 'Al-Farabi'],
+      'SZ': ['Sobhuza II'],
+      'TD': ['François Tombalbaye'],
+      'TF': ['No major philosophers recorded'],
+      'TG': ['Sylvanus Olympio'],
+      'TH': ['Buddhadasa', 'King Mongkut'],
+      'TJ': ['Sadriddin Ayni'],
+      'TL': ['Xanana Gusmão'],
+      'TM': ['Magtymguly Pyragy'],
+      'TN': ['Ibn Khaldun', 'Al-Zaytuna scholars'],
+      'TR': ['Rumi', 'Al-Ghazali', 'Yunus Emre'],
+      'TT': ['C.L.R. James', 'Eric Williams'],
+      'TW': ['Hu Shih'],
+      'TZ': ['Julius Nyerere'],
+      'UA': ['Hryhorii Skovoroda', 'Mikhail Bulgakov'],
+      'UG': ['Apollo Milton Obote'],
+      'US': ['William James', 'John Dewey', 'Emerson'],
+      'UY': ['José Enrique Rodó'],
+      'UZ': ['Al-Biruni', 'Avicenna'],
+      'VE': ['Andrés Bello', 'Simón Rodríguez'],
+      'VN': ['Trần Đức Thảo', 'Hồ Chí Minh'],
+      'VU': ['Walter Lini'],
+      'XK': ['Mother Teresa'],
+      'YE': ['Al-Hamdani'],
+      'ZA': ['Steve Biko', 'Nelson Mandela'],
+      'ZM': ['Kenneth Kaunda'],
+      'ZW': ['Robert Mugabe', 'Chenjerai Hove']
+    };
+
+    const colorScale = scaleLinear()
+      .domain([0, 1])
+      .range(['#202020', '#e0e0e0']);
+
+    const countryCenters = {};
+
+    fetch('https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson')
+      .then(res => res.json())
+      .then(countries => {
+        const countryColors = {};
+        countries.features.forEach(feat => {
+          countryColors[feat.properties.ISO_A2] = colorScale(Math.random());
+
+          const coords = feat.geometry.coordinates;
+          let sumLat = 0, sumLng = 0, count = 0;
+
+          function processCoords(coordArray) {
+            if (typeof coordArray[0] === 'number') {
+              sumLng += coordArray[0];
+              sumLat += coordArray[1];
+              count++;
+            } else {
+              coordArray.forEach(c => processCoords(c));
+            }
+          }
+
+          processCoords(coords);
+          countryCenters[feat.properties.ISO_A2] = {
+            lat: sumLat / count,
+            lng: sumLng / count
+          };
+        });
+
+        const world = new Globe(document.getElementById('globeViz'))
+          .width(window.innerWidth)
+          .height(window.innerHeight)
+          .globeImageUrl('//cdn.jsdelivr.net/npm/three-globe/example/img/earth-topology.png')
+          .backgroundImageUrl('//cdn.jsdelivr.net/npm/three-globe/example/img/night-sky.png')
+          .backgroundColor('#000000')
+          .lineHoverPrecision(0)
+          .polygonsData(countries.features.filter(d => d.properties.ISO_A2 !== 'AQ'))
+          .polygonAltitude(0.05)
+          .polygonCapColor(feat => countryColors[feat.properties.ISO_A2])
+          .polygonSideColor(() => 'rgba(50, 50, 50, 0.3)')
+          .polygonStrokeColor(() => '#111')
+          .polygonLabel(({ properties: d }) => {
+            const philos = philosophers[d.ISO_A2] || ['No major philosophers recorded'];
+            const philosList = philos.map(p => `<div>• ${p}</div>`).join('');
+            return `
+              <div style="
+                font-family: 'VT323', monospace;
+                font-size: 16px;
+                color: white;
+              ">
+                <b>${d.ADMIN.toUpperCase()} (${d.ISO_A2})</b><br />
+                <b>Philosophers:</b><br />
+                ${philosList}
+              </div>
+            `;
+          })
+          .onPolygonHover(hoverD => world
+            .polygonAltitude(d => d === hoverD ? 0.12 : 0.05)
+            .polygonCapColor(d => d === hoverD ? '#ffffff' : countryColors[d.properties.ISO_A2])
+          )
+          .polygonsTransitionDuration(300);
+
+        world.pointOfView({ lat: 20, lng: 78, altitude: 2 });
+
+        window.addEventListener('resize', () => {
+          world.width(window.innerWidth).height(window.innerHeight);
+        });
+
+        let clickCount = 0;
+        let clickTimer = null;
+        let hoveredCountry = null;
+
+        world.onPolygonHover(hoverD => {
+          hoveredCountry = hoverD;
+          world
+            .polygonAltitude(d => d === hoverD ? 0.12 : 0.05)
+            .polygonCapColor(d => d === hoverD ? '#ffffff' : countryColors[d.properties.ISO_A2]);
+        });
+
+        document.getElementById('globeViz').addEventListener('click', () => {
+          clickCount++;
+
+          if (clickCount === 2 && hoveredCountry) {
+            const center = countryCenters[hoveredCountry.properties.ISO_A2];
+            if (center) {
+              world.pointOfView({ lat: center.lat, lng: center.lng, altitude: 2 }, 1000);
+            }
+            clickCount = 0;
+            clearTimeout(clickTimer);
+          } else if (clickCount === 3) {
+            world.pointOfView({ lat: 20, lng: 78, altitude: 2 }, 1000);
+            clickCount = 0;
+            clearTimeout(clickTimer);
+          } else {
+            clearTimeout(clickTimer);
+            clickTimer = setTimeout(() => {
+              clickCount = 0;
+            }, 500);
+          }
+        });
+      });
+  </script>
+</body>
