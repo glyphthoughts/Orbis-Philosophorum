@@ -405,10 +405,8 @@
   const app = initializeApp(firebaseConfig);
   const database = getDatabase(app);
 
-  // CHANGE THIS LINE FOR EACH PROJECT - Format: category/ProjectName
   const projectName = 'projects/Orbis Philosophorum';
-  
-  // Store directly under visits with the full path as the key
+
   const visitsRef = ref(database, 'visits/' + projectName.replace('/', '-'));
   
   push(visitsRef, {
